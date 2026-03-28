@@ -33,3 +33,4 @@ Make sure the notebook, helper configuration, and configuration Python files are
 - [How to write a great agents.md](https://github.blog/ai-and-ml/github-copilot/how-to-write-a-great-agents-md-lessons-from-over-2500-repositories/) - lessons from 2,500+ repositories
 - [Anthropic Skills](https://github.com/anthropics/skills/blob/main/skills/algorithmic-art/SKILL.md) - example skill definitions for Claude
 - [papermill](https://papermill.readthedocs.io/) - notebook execution
+- [AutoResearch](https://github.com/karpathy/autoresearch) - Inspiration

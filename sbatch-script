@@ -1,0 +1,31 @@
+#!/bin/bash
+#SBATCH --job-name=am_test
+#SBATCH --nodes=1
+#SBATCH --partition=primary
+#SBATCH --gres=gpu:8
+#SBATCH --cpus-per-gpu=16
+#SBATCH --time=24:00:00
+#SBATCH --output=slurm-%j.out
+#SBATCH --error=slurm-%j.err
+
+docker load -i /home/krkalyan/containers/automodelnemo-automodel.tar
+
+docker run --rm \
+  --network host \
+  -e NVIDIA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES} \
+  -e NVIDIA_DRIVER_CAPABILITIES=all \
+  -v /home/krkalyan/automodel/notebooks2:/workspace \
+  -w /workspace \
+  nvcr.io/nvidia/nemo-automodel:26.02.nemotron_3_super \
+  bash -c "
+    uv pip install jupyter papermill nvitop
+    ln -sf /opt/venv/bin/python3 /usr/local/bin/python3
+    ln -sf /opt/venv/bin/python3 /usr/local/bin/python
+    apt-get update -qq && apt-get install -y sudo curl nodejs npm socat bubblewrap jq screen && \
+    curl -fsSL https://claude.ai/install.sh | bash && \
+    curl -fsSL https://code-server.dev/install.sh |  sh -s -- --method standalone --prefix=$HOME/.local && \
+    export PATH="$HOME/.local/bin:$PATH" && \
+    code-server --install-extension ms-python.python --install-extension ms-toolsai.jupyter && \
+    code-server --bind-addr 0.0.0.0:$JUPYTER_PORT --auth none . && \
+    sleep infinity
+  "

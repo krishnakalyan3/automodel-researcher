@@ -4,76 +4,72 @@ license: Complete terms in LICENSE.txt
 ---
 
 # Automodel Researcher
-Autonomous ML researcher that tunes a finetuning config to minimize validation loss.
+Autonomous ML researcher that iteratively tunes a fine-tuning config to minimize validation loss.
 
 ## Paths
 
-- Notebook: `/workspace/automodel/Automodel/examples/vlm_finetune/nemotron/parse-ft-tutorial/parse_finetune_tutorial.ipynb`
-- Config: `/workspace/automodel/Automodel/examples/vlm_finetune/nemotron/nemotron_parse_v1_1.yaml`
-- Run dir: `/workspace/automodel/Automodel/examples/vlm_finetune/nemotron/runs/`
+- Notebook: `/workspace/nemotron_parse_finetune.ipynb`
+- Config: `/workspace/nemotron_parse_config.yaml`
+- Experiments Output: `/workspace/experiments`
+- NeMo AutoModel Docs: `https://docs.nvidia.com/nemo/automodel/latest/index.html`
+- AutoModel repo: `/opt/Automodel`
 
 ## Setup
-
+0. Run `nvidia-smi` to understand the current hardware setup
 1. Read the notebook and config for full context.
-2. Create the runs dir: `mkdir -p <run_dir>`
-3. Initialize `results.tsv` with just the header row. The baseline will be recorded after the first run.
-4. Confirm setup and kick off experimentation.
+2. Create the experiments dir: `mkdir -p experiments`
+3. Initialize `results.tsv` with just the header row in `experiments` directory. The baseline will be recorded after the first run.
+4. Kick off experimentation.
+
+## Permissions
+**You MAY:**
+- Edit the config YAML (learning rate, batch size, warmup, scheduler, weight decay, precision, gradient accumulation — everything is fair game).
+- Kill a running experiment early if metrics are clearly diverging. Log it with status discard and prefix the comments field with [ai_killed] followed by your reasoning.
+
+**You MAY NOT:**
+- Edit the notebook itself.
+- Install or upgrade packages.
+- Overwrite a previous experiment's papermill output notebook.
 
 ## Experimentation
 
-**What you CAN do:**
-- Modify the config YAML — this is the only file you edit. Learning rate, batch size, warmup, scheduler, weight decay, precision, gradient accumulation — everything is fair game.
+- The notebook should auto-increment as <notebook_name>_{EXP_NUM}.ipynb in <experiments_dir>
+- The config file also needs to exist as <notebook_name>_{EXP_NUM}.yaml in <experiments_dir>. In addition, override the `checkpoint_dir` path to <notebook_name>_{EXP_NUM}_checkpoint
+- Logs, config, checkpoints and the papermill notebooks with output go into the <experiments_dir> folder
+- Each experiment should run for 30 minutes followed by a hard kill
 
-**What you CAN NOT do:**
-- Modify the notebook.
-- Install new packages.
-- Overwrite a previous papermill output.
-
-**The goal is simple: get the lowest val_loss.**
-
-**The first run**: always establish the baseline — run with the config as-is.
-
-## Running an Experiment
-```bash
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-RUN_NAME="_${TIMESTAMP}"
-
-timeout 1800 papermill ${RUN_NAME}.ipynb \
-  -f  > /${RUN_NAME}.log 2>&1
-```
-
-Extract the key metric for example `val_loss`:
-```bash
-grep "val_loss" ${RUN_NAME}.log
-```
+**The goal is simple:** Get the lowest val_loss.
+**The First Run:** Always establish the baseline — run with the config as-is.
+**The Second Run:** Modify batch size for best GPU utilization.
 
 ## Logging results
 
 Append to `results.tsv` (tab-separated, never comma-separated):
 ```
-timestamp   run_name   config_change   val_loss   status
+timestamp   run_name   config_change   val_loss   run_time_min   avg_gpu_utilization_pct   status   comments
 ```
 
 Status is `keep`, `discard`, or `crash`. Example:
 ```
-20250612_090000   baseline                          0.8231   keep
-20250612_091800   lr_3e-4                lr 3e-4    0.8105   keep
-20250612_093600   warmup_100             warmup 100 0.8190   discard
-20250612_095400   gbs_oom                gbs 32     0.0000   crash
+20260327_000000   baseline                                        0.0468  30  97   keep       baseline; best@step249/epoch4; mem 45/80GB per GPU
+20260327_011700   cosine_lr       cosine lr, warmup 50, min 1e-6  0.0309  30  98   keep       34% better than baseline; no overfitting
+20260327_021800   lower_lr_5e5    lr 5e-5, cosine, warmup 50      0.0296  30  96   keep       NEW BEST; converged at 0.0296
+20260327_001200   batch_lbs4      local_bs 4, global_bs 32        0.0000   5  100   crash      OOM; local_batch_size=4 too large ~80GB/80GB per GPU
 ```
 
-## The experiment loop
+## The Experiment Loop
 
 1. Read the current config and `results.tsv` — note the best val_loss so far.
-2. Choose the single config change most likely to reduce val_loss.
+2. Modify the config with the change most likely to reduce val_loss.
 3. Run the experiment (see above). Redirect everything to the log — do NOT let output flood your context.
-4. Extract results: `grep "val_loss" <run_dir>/${RUN_NAME}.log`
-5. If grep is empty — crashed. Run `tail -n 50 <run_dir>/${RUN_NAME}.log`, fix and retry. Give up after 3 attempts, log as `crash`.
-6. Record the result in `results.tsv`.
-7. If val_loss improved → keep the config change.
-8. If val_loss worse or timeout → revert that field to its previous value, mark as `discard`.
-9. Repeat from step 1.
+4. Read the notebook <notebook_name>_{EXP_NUM}.ipynb and logs <experiments_dir>/${RUN_NAME}.log and formulate your analysis.
+5. Append to `results.tsv` from step 4.
+6. Repeat from step 1.
 
-**Crashes**: If a run crashes (OOM, or a bug, or etc.), use your judgment: If it's something dumb and easy to fix (e.g. a typo, a missing import), fix it and re-run. If the idea itself is fundamentally broken, just skip it, log "crash" as the status in the tsv, and move on.
+**Crashes**: If a run crashes (OOM, a bug, etc.), use your judgment: If it's something dumb and easy to fix (e.g. a typo, a missing import), fix it and re-run. If the idea itself is fundamentally broken, just skip it, log "crash" as the status in the tsv, and move on.
 
-**NEVER STOP**: Once the experiment loop has begun (after the initial setup), do NOT pause to ask the human if you should continue. Do NOT ask "should I keep going?" or "is this a good stopping point?". The human might be asleep, or gone from a computer and expects you to continue working *indefinitely* until you are manually stopped. You are autonomous. If you run out of ideas, think harder — read papers referenced in the code, re-read the in-scope files for new angles, try combining previous near-misses, try more radical architectural changes. The loop runs until the human interrupts you, period.
+**NEVER STOP**: Once the experiment loop has begun (after the initial setup), do NOT pause to ask the human if you should continue. Do NOT ask "should I keep going?" or "is this a good stopping point?". The human might be asleep, or away from a computer and expects you to continue working *indefinitely* until you are manually stopped. You are autonomous. If you run out of ideas, think harder — read papers referenced in the code, re-read the in-scope files for new angles, try combining previous near-misses, try more radical architectural changes. The loop runs until the human interrupts you, period.
+
+**GPU Saturation**: Monitor GPU utilization throughout each run. The target is an average utilization of at least 85%. Log the observed average in `results.tsv` and note it, then move on.
+
+**Reference and Documentation**: When in doubt, or when you think you have done your best and are running out of ideas, or when validation loss appears saturated and you are no longer making progress, read the documentation and browse the repository for parameters or features you may have missed: https://docs.nvidia.com/nemo/automodel/latest/index.html and/or the repository local path `/opt/Automodel`.

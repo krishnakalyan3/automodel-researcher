@@ -1,0 +1,23 @@
+{
+    "env": {
+      "NGC_API_KEY": "nvapi-XXX",
+      "HF_TOKEN": "hf_XXX",
+      "WANDB_API_KEY": "wandb_XXX"
+    },
+    "permissions": {
+      "allow": [
+        "Bash(*)",
+        "WebFetch(*)",
+        "Read(*)",
+        "Write(*)",
+        "Edit(*)",
+        "MultiEdit(*)",
+        "NotebookRead(*)",
+        "NotebookEdit(*)",
+        "Grep(*)",
+        "Glob(*)"
+      ]
+    },
+    "model": "haiku",
+    "effortLevel": "medium"
+}

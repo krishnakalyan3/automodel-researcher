@@ -1,0 +1,35 @@
+timestamp	run_name	config_change	val_loss	run_time_min	max_gpu_saturation_run_pct	status	comments
+20260327_000000	baseline		0.0468	30	100	keep	baseline; best@step249/epoch4; overfits after; mem 45/80GB per GPU
+20260327_001200	batch_lbs4	local_bs 4, global_bs 32	0.0000	5	100	crash	OOM; local_batch_size=4 too large ~80GB/80GB per GPU
+20260327_004300	batch_lbs3	local_bs 3, global_bs 24, val_every 25	0.0475	30	100	keep	best@step274/epoch8; mem 63-67/80GB; close to baseline but did not beat it
+20260327_011700	cosine_lr	cosine lr_scheduler, warmup 50, min_lr 1e-6	0.0309	30	100	keep	best@step499/epoch9; 34% better than baseline; no overfitting; LR decayed from 1e-4 to 1e-6
+20260327_014800	higher_lr	lr 2e-4, warmup 100, cosine	0.0491	30	100	discard	lr too high; val_loss spiked to 0.1649 at epoch2; recovered to 0.0491 but much worse than cosine_lr
+20260327_021800	lower_lr_5e5	lr 5e-5, cosine, warmup 50	0.0296	30	100	keep	NEW BEST; best@step399/epoch7; converged at 0.0296; lower LR kept model in productive range longer
+20260327_024700	lr_3e5	lr 3e-5, cosine, warmup 50	0.0335	30	100	discard	converged at 0.0335; lr too low; slower convergence than 5e-5
+20260327_031600	lr_7e5	lr 7e-5, cosine, warmup 50	0.0291	30	100	keep	NEW BEST; converged at 0.0291 step349-499; optimal LR between 5e-5 and 1e-4
+20260327_034500	wd_005	lr 7e-5, cosine, wd 0.05	0.0282	30	100	keep	NEW BEST; weight_decay 0.05 helped; best@step349; converged 0.0282-0.0286
+20260327_041400	wd_01	lr 7e-5, cosine, wd 0.1	0.0279	30	100	keep	NEW BEST; wd 0.1 improves on 0.05; best@step399; 40.4% better than baseline
+20260327_042700	wsd_v1	WSD scheduler, wsd_decay 200, wd 0.1	0.0000	5	100	crash	[ai_killed] decay at step800 unreachable in 30min; constant LR with no decay
+20260327_045500	wsd_v2	WSD scheduler, wsd_decay 200, max_steps 500, wd 0.1	0.0306	30	100	discard	best@step399; decay phase helped but constant LR phase too long; cosine better
+20260327_052400	beta2_999	lr 7e-5, cosine, wd 0.1, beta2 0.999	0.0274	30	100	keep	NEW BEST; beta2=0.999 helps late convergence; best@step499; 41.5% over baseline
+20260327_055200	wd_015	lr 7e-5, cosine, wd 0.15, beta2 0.999	0.0324	30	100	discard	wd 0.15 too aggressive; regularization hurts convergence
+20260327_062100	lr_6e5	lr 6e-5, cosine, wd 0.1, beta2 0.999	0.0320	30	100	discard	best@step349; worse than lr 7e-5 (0.0274); lr=7e-5 confirmed optimal
+20260327_065100	lr_8e5	lr 8e-5, cosine, wd 0.1, beta2 0.999	0.0283	30	100	discard	best@step499; worse than lr 7e-5 (0.0274); lr=7e-5 confirmed optimal
+20260327_072000	unfreeze_emb	freeze_embeddings=false	0.0298	30	100	discard	best@step349; unfreezing embeddings did not help; 0.0298 vs 0.0274 best
+20260327_075000	min_lr_1e7	min_lr 1e-7 (was 1e-6)	0.0301	30	100	discard	best@step449; lower min_lr didn't help; 0.0301 vs 0.0274 best
+20260327_082000	coord_wt_5	coordinate_weight 5.0 (was 10.0)	0.0303	30	100	discard	best@step349; lower coord weight worse; 0.0303 vs 0.0274 best
+20260327_114000	warmup_100	warmup_steps 100 (was 50)	0.0294	30	100	discard	best@step449; longer warmup slightly worse; 0.0294 vs 0.0274 best
+20260327_121000	liger_kernel	use_liger_kernel true	0.0295	30	100	discard	best@step499; kernel fusion didn't degrade quality; 0.0295 vs 0.0274 best
+20260327_124600	beta1_095	betas [0.95, 0.999] (was [0.9, 0.999])	0.0318	30	100	discard	best@step399; higher momentum worse; 0.0318 vs 0.0274 best
+20260327_132800	coord_wt_15	coordinate_weight 15.0 (was 10.0)	0.0301	30	100	discard	best@step449; higher coord weight worse; 0.0301 vs 0.0274 best
+20260327_132300	linear_decay	lr_decay_style linear (was cosine)	0.0000	0	0	crash	[error] linear decay caused training setup failure
+20260327_140900	grad_clip_05	clip_grad_norm.max_norm 0.5	0.0294	30	100	discard	best@step449; aggressive clipping worse; 0.0294 vs 0.0274 best
+20260327_135400	seed_123	seed 123 (was 42)	0.0000	0	0	crash	[error] different seed caused training setup failure
+20260327_145200	wd_012	weight_decay 0.12 (was 0.1)	0.0316	30	100	discard	best@step449; slightly higher wd worse; 0.0316 vs 0.0274 best
+20260327_144500	wd_008	weight_decay 0.08 (was 0.1)	0.0000	0	0	crash	[error] training failed or skipped; notebook jumped to eval cell
+20260327_154200	inv_sqrt	lr_decay_style inverse-square-root	0.0277	30	100	keep	best@step499; very close to best; only 0.3% worse than 0.0274
+20260327_155400	warmup_25	warmup_steps 25 (was 50)	0.0000	0	0	crash	[error] training did not run; evaluation cell error only
+20260327_162500	adam_opt	torch.optim.Adam (was AdamW)	0.0318	30	100	discard	best@step299; incomplete training; Adam worse than AdamW
+20260327_161800	max_steps_1500	max_steps 1500 (was 1000)	0.0000	0	0	crash	[error] training timed out or failed; evaluation cell error only
+20260327_163000	inv_sqrt_lr65	inverse-sqrt, lr=6.5e-5	0.0000	0	0	crash	[error] training did not run; persistent evaluation cell issue
+20260327_163000	cosine_lr65	cosine, lr=6.5e-5	0.0000	0	0	crash	[error] training did not run; persistent evaluation cell issue
